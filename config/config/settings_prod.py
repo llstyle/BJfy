@@ -126,6 +126,10 @@ SECURE_HSTS_PRELOAD = True
 # CSRF trusted origins
 CSRF_TRUSTED_ORIGINS = os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
 
+# Create logs directory if it doesn't exist
+LOGS_DIR = BASE_DIR / 'logs'
+LOGS_DIR.mkdir(exist_ok=True)
+
 # Logging
 LOGGING = {
     'version': 1,
@@ -140,7 +144,7 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
+            'filename': LOGS_DIR / 'django.log',
             'formatter': 'verbose',
         },
         'console': {

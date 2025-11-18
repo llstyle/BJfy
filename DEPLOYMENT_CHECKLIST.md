@@ -54,16 +54,20 @@ STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.ManifestStaticFilesSto
 ### 4. Переменные окружения
 
 Создать файл `.env`:
+
 ```env
 SECRET_KEY=your-super-secret-key-here-minimum-50-characters
 DEBUG=False
 ALLOWED_HOSTS=yourdomain.com,www.yourdomain.com
+ADMIN_URL=secret-control-panel-xyz123/
 DB_NAME=bjfy_db
 DB_USER=bjfy_user
 DB_PASSWORD=super-secure-password
 DB_HOST=localhost
 DB_PORT=5432
 ```
+
+⚠️ **ВАЖНО**: Измени `ADMIN_URL` на свой уникальный путь! Не используй стандартный `/admin/`
 
 Добавить `.env` в `.gitignore`!
 
@@ -94,6 +98,7 @@ python-dotenv==1.0.0  # Для .env файлов
 ## 🔧 Файлы конфигурации
 
 ### requirements.txt
+
 ```
 Django==4.2.25
 Pillow==11.3.0
@@ -104,6 +109,7 @@ whitenoise==6.6.0
 ```
 
 ### .gitignore
+
 ```
 # Python
 *.py[cod]
@@ -134,6 +140,7 @@ Thumbs.db
 ```
 
 ### Gunicorn config (gunicorn_config.py)
+
 ```python
 bind = "0.0.0.0:8000"
 workers = 3
@@ -144,6 +151,7 @@ keepalive = 2
 ```
 
 ### Nginx config (nginx.conf)
+
 ```nginx
 server {
     listen 80;
@@ -179,6 +187,7 @@ server {
 ```
 
 ### systemd service (bjfy.service)
+
 ```ini
 [Unit]
 Description=BJfy Music Streaming
@@ -198,6 +207,7 @@ WantedBy=multi-user.target
 ## 📝 Пошаговая инструкция деплоя
 
 ### Шаг 1: Подготовка кода
+
 ```bash
 # 1. Создать production настройки
 cp config/settings.py config/settings_prod.py
@@ -218,6 +228,7 @@ git push
 ```
 
 ### Шаг 2: Настройка сервера
+
 ```bash
 # 1. Обновить систему
 sudo apt update && sudo apt upgrade -y
@@ -254,14 +265,18 @@ nano .env
 cd config
 python manage.py migrate
 
-# 9. Собрать статику
+# 9. Создать директорию для логов
+mkdir -p logs
+
+# 10. Собрать статику
 python manage.py collectstatic --noinput
 
-# 10. Создать суперпользователя
+# 11. Создать суперпользователя
 python manage.py createsuperuser
 ```
 
 ### Шаг 3: Настройка Gunicorn
+
 ```bash
 # Тест запуска
 gunicorn --bind 0.0.0.0:8000 config.wsgi:application
@@ -277,6 +292,7 @@ sudo systemctl status bjfy
 ```
 
 ### Шаг 4: Настройка Nginx
+
 ```bash
 # Создать конфиг
 sudo nano /etc/nginx/sites-available/bjfy
@@ -292,6 +308,7 @@ sudo systemctl restart nginx
 ```
 
 ### Шаг 5: SSL (Let's Encrypt)
+
 ```bash
 # Установить Certbot
 sudo apt install certbot python3-certbot-nginx -y
@@ -358,7 +375,16 @@ sudo systemctl restart bjfy
 
 ## ⚠️ Важные замечания
 
-1. **Никогда не коммитьте**:
+1. **Безопасность админ-панели**:
+   - Измени URL админки с `/admin/` на что-то уникальное
+   - Используй переменную окружения `ADMIN_URL`
+   - Пример: `ADMIN_URL=secret-control-xyz-2024/`
+   - Доступ: `https://yourdomain.com/secret-control-xyz-2024/`
+   - Используй сильные пароли для суперпользователя
+   - Рассмотри установку django-admin-honeypot (ловушка для атак)
+
+2. **Никогда не коммитьте**:
+
    - SECRET_KEY
    - Пароли БД
    - .env файлы
@@ -366,11 +392,13 @@ sudo systemctl restart bjfy
    - /media/ файлы (загружайте отдельно)
 
 2. **Регулярно делайте бэкапы**:
+
    - База данных
    - Медиа файлы
    - Код
 
 3. **Мониторинг**:
+
    - Настроить логирование
    - Использовать Sentry для отслеживания ошибок
    - Настроить алерты
@@ -383,6 +411,7 @@ sudo systemctl restart bjfy
 ## 🎯 Альтернативные варианты деплоя
 
 ### Простые варианты (PaaS):
+
 - **Heroku** - простой, но дорогой
 - **PythonAnywhere** - хорош для начала
 - **Railway** - современный и удобный
@@ -390,6 +419,7 @@ sudo systemctl restart bjfy
 - **DigitalOcean App Platform** - простой и надежный
 
 ### VPS:
+
 - **DigitalOcean Droplet** - $4-6/месяц
 - **Linode** - от $5/месяц
 - **Hetzner** - дешевле, в Европе

@@ -2,33 +2,49 @@
 
 ## 📋 Что нужно сделать
 
-### 1. Генерация SECRET_KEY
+### 1. Генерация SECRET_KEY и Admin URL
+
 ```bash
 cd /Users/lstyle/PetPrj/BJfy
 source env/bin/activate
+
+# Сгенерируй SECRET_KEY
 python generate_secret_key.py
+
+# Сгенерируй секретный URL для админки
+python generate_admin_url.py
 ```
 
+**Сохрани оба значения в менеджер паролей!**
+
 ### 2. Создание .env файла
+
 ```bash
 cp .env.example .env
 nano .env
 ```
 
 Заполни все значения:
+
 - `SECRET_KEY` - из предыдущего шага
 - `ALLOWED_HOSTS` - твой домен
+- `ADMIN_URL` - **ОБЯЗАТЕЛЬНО** измени на свой уникальный путь (например: `secret-panel-xyz123/`)
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD` - данные PostgreSQL
 - `CSRF_TRUSTED_ORIGINS` - https://твойдомен.com
 
+⚠️ **Не используй стандартный `/admin/` - это первая цель для атак!**
+
 ### 3. Обновление requirements.txt
+
 ```bash
 pip install psycopg2-binary gunicorn python-dotenv whitenoise
 pip freeze > requirements.txt
 ```
 
 ### 4. Добавление в .gitignore
+
 Убедись что в `.gitignore` есть:
+
 ```
 .env
 db.sqlite3
@@ -38,6 +54,7 @@ db.sqlite3
 ```
 
 ### 5. Коммит изменений
+
 ```bash
 git add .
 git commit -m "Prepare for production deployment"
@@ -47,12 +64,14 @@ git push
 ## 🖥️ На сервере (Ubuntu/Debian)
 
 ### 1. Установка зависимостей
+
 ```bash
 sudo apt update
 sudo apt install python3-pip python3-venv postgresql nginx -y
 ```
 
 ### 2. Создание базы данных PostgreSQL
+
 ```bash
 sudo -u postgres psql
 
@@ -63,6 +82,7 @@ GRANT ALL PRIVILEGES ON DATABASE bjfy_db TO bjfy_user;
 ```
 
 ### 3. Клонирование проекта
+
 ```bash
 cd /var/www/
 sudo git clone твой-репозиторий BJfy
@@ -71,6 +91,7 @@ cd BJfy
 ```
 
 ### 4. Настройка окружения
+
 ```bash
 python3 -m venv env
 source env/bin/activate
@@ -78,12 +99,15 @@ pip install -r requirements.txt
 ```
 
 ### 5. Создание .env файла
+
 ```bash
 nano .env
 ```
+
 Заполни все переменные окружения!
 
 ### 6. Миграции и статика
+
 ```bash
 cd config
 python manage.py migrate
@@ -92,6 +116,7 @@ python manage.py createsuperuser
 ```
 
 ### 7. Настройка Gunicorn service
+
 ```bash
 sudo cp /var/www/BJfy/bjfy.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -101,6 +126,7 @@ sudo systemctl status bjfy
 ```
 
 ### 8. Настройка Nginx
+
 ```bash
 sudo cp /var/www/BJfy/nginx.conf /etc/nginx/sites-available/bjfy
 # Отредактируй домен в файле:
@@ -112,6 +138,7 @@ sudo systemctl restart nginx
 ```
 
 ### 9. SSL сертификат (Let's Encrypt)
+
 ```bash
 sudo apt install certbot python3-certbot-nginx -y
 sudo certbot --nginx -d твойдомен.com -d www.твойдомен.com
@@ -120,12 +147,14 @@ sudo certbot --nginx -d твойдомен.com -d www.твойдомен.com
 ## 🔄 Обновление проекта
 
 Просто запусти:
+
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
 ```
 
 Или вручную:
+
 ```bash
 cd /var/www/BJfy
 git pull
@@ -140,23 +169,27 @@ sudo systemctl restart bjfy
 ## 📊 Полезные команды
 
 ### Логи Gunicorn
+
 ```bash
 sudo journalctl -u bjfy -f
 ```
 
 ### Логи Nginx
+
 ```bash
 sudo tail -f /var/log/nginx/bjfy_error.log
 sudo tail -f /var/log/nginx/bjfy_access.log
 ```
 
 ### Статус сервисов
+
 ```bash
 sudo systemctl status bjfy
 sudo systemctl status nginx
 ```
 
 ### Перезапуск
+
 ```bash
 sudo systemctl restart bjfy
 sudo systemctl restart nginx
@@ -165,34 +198,45 @@ sudo systemctl restart nginx
 ## 🎯 Рекомендации
 
 ### Простой вариант (без сервера)
+
 Если не хочешь возиться с сервером, используй:
+
 - **Railway.app** - бесплатный тариф, простой деплой
 - **Render.com** - бесплатный тариф
 - **PythonAnywhere** - специально для Django
 - **Heroku** - платно, но надёжно
 
 ### VPS сервера (дешево)
+
 - **DigitalOcean** - $4-6/месяц
 - **Hetzner** - от €3.79/месяц (в Европе)
 - **Linode** - $5/месяц
 
 ## ⚠️ ВАЖНО
 
-1. **Никогда не коммить:**
+1. **Безопасность админ-панели:**
+   - Обязательно измени `ADMIN_URL` в `.env` на уникальный
+   - Не используй `/admin/`, `/panel/`, `/control/` и другие очевидные пути
+   - Используй сильные пароли для суперпользователя
+   - Доступ будет: `https://yourdomain.com/твой-секретный-путь/`
+
+2. **Никогда не коммить:**
    - `.env` файлы
    - `db.sqlite3`
    - Пароли и ключи
-   
-2. **Обязательно настроить:**
+
+3. **Обязательно настроить:**
+
    - Регулярные бэкапы БД
    - Мониторинг (Sentry, UptimeRobot)
    - Логирование ошибок
 
-3. **Для медиа файлов:**
+4. **Для медиа файлов:**
+
    - В продакшне лучше использовать S3/Cloudinary
    - Или настроить отдельный сервер для media
 
-4. **Производительность:**
+5. **Производительность:**
    - Добавь Redis для кэширования
    - Используй CDN для статики
    - Оптимизируй аудио файлы (битрейт)

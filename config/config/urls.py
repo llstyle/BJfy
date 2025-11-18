@@ -2,9 +2,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+import os
+
+# Use secret admin URL in production
+ADMIN_URL = os.environ.get('ADMIN_URL', 'admin/')
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path(ADMIN_URL, admin.site.urls),
     path('', include('music.urls')),
 ]
 
