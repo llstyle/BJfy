@@ -1,0 +1,23 @@
+[Unit]
+Description=BJfy Music Streaming Gunicorn Daemon
+After=network.target
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+RuntimeDirectory=gunicorn
+WorkingDirectory=/var/www/BJfy/config
+Environment="PATH=/var/www/BJfy/env/bin"
+ExecStart=/var/www/BJfy/env/bin/gunicorn \
+          --config /var/www/BJfy/gunicorn_config.py \
+          config.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

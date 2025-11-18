@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать плейлист - Music Streaming{% endblock %}
+
+{% block content %}
+<h1 class="section-header">Создать плейлист</h1>
+
+<form method="post" style="max-width: 500px;">
+    {% csrf_token %}
+    <div style="margin-bottom: 24px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Название плейлиста</label>
+        <input type="text" name="name" required 
+               style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #333; background: #181818; color: #fff; font-size: 16px;">
+    </div>
+    
+    
+    <div style="display: flex; gap: 16px;">
+        <button type="submit" class="btn btn-primary">Создать</button>
+        <a href="{% url 'my_playlists' %}" class="btn btn-secondary">Отмена</a>
+    </div>
+</form>
+{% endblock %}

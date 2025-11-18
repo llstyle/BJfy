@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ album.title }} - Music Streaming{% endblock %}
+
+{% block content %}
+<div style="display: flex; gap: 32px; margin-bottom: 32px;">
+    <img src="{% if album.cover %}{{ album.cover.url }}{% else %}/static/placeholder.png{% endif %}" 
+         alt="{{ album.title }}" 
+         style="width: 200px; height: 200px; border-radius: 8px; object-fit: cover; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+    <div style="display: flex; flex-direction: column; justify-content: flex-end;">
+        <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">Альбом</div>
+        <h1 style="font-size: 48px; font-weight: bold; margin-bottom: 16px;">{{ album.title }}</h1>
+        <div style="display: flex; gap: 8px; align-items: center; color: #b3b3b3;">
+            <a href="{% url 'artist_detail' album.artist.pk %}" style="color: #fff; text-decoration: none; font-weight: 600;">{{ album.artist.name }}</a>
+            <span>•</span>
+            <span>{{ album.release_date.year }}</span>
+            <span>•</span>
+            <span>{{ songs.count }} треков</span>
+        </div>
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-primary" onclick="playFirstInList('#album-{{ album.pk }}')"><i class="mdi mdi-play" style="margin-right:6px"></i>Слушать</button>
+        </div>
+    </div>
+</div>
+
+<section class="section">
+    <ul class="song-list" id="album-{{ album.pk }}">
+        {% for song in songs %}
+        <li class="song-item" data-song-id="{{ song.pk }}"
+            data-audio="{{ song.get_stream_url }}"
+            data-title="{{ song.title }}"
+            data-artist="{{ song.artist.name }}"
+            data-cover="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}"
+            onclick="playFromItem(this)">
+            <span class="song-number">{{ forloop.counter }}</span>
+            <div class="song-info">
+                <div class="song-title">{{ song.title }}</div>
+                <div class="song-artist">{{ song.artist.name }} • {{ song.get_duration_display }}</div>
+            </div>
+            {% if user.is_authenticated %}
+            <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                <div class="card-controls" style="margin-left: 0;">
+                    {% if song.pk in favorite_ids %}
+                    <button class="icon-btn favorited" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Уже в лайках"><i class="mdi mdi-heart"></i></button>
+                    {% else %}
+                    <button class="icon-btn" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Понравилось"><i class="mdi mdi-heart-outline"></i></button>
+                    {% endif %}
+                    <button class="icon-btn menu-btn" onclick="event.stopPropagation(); openMenu(this)" aria-label="Меню">⋮</button>
+                    <div class="menu-dropdown">
+                        <a href="{% url 'add_to_playlist' song.pk %}">Добавить в плейлист</a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</section>
+
+<script>
+function playFirstInList(selector) {
+    const list = document.querySelector(selector);
+    if (!list) return;
+    const first = list.querySelector('li.song-item');
+    if (first) { playFromItem(first); }
+}
+</script>
+{% endblock %}
