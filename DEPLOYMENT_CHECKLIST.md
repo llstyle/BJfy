@@ -278,17 +278,25 @@ python manage.py createsuperuser
 ### Шаг 3: Настройка Gunicorn
 
 ```bash
-# Тест запуска
-gunicorn --bind 0.0.0.0:8000 config.wsgi:application
+# Тест запуска (должен работать без ошибок)
+cd /var/www/BJfy/config
+source /var/www/BJfy/env/bin/activate
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
+# Ctrl+C для остановки
 
 # Создать systemd service
-sudo nano /etc/systemd/system/bjfy.service
-# (вставить содержимое из bjfy.service выше)
+sudo cp /var/www/BJfy/bjfy.service /etc/systemd/system/
 
 # Запустить сервис
+sudo systemctl daemon-reload
 sudo systemctl start bjfy
 sudo systemctl enable bjfy
+
+# Проверить статус (должен быть active (running))
 sudo systemctl status bjfy
+
+# Если ошибка - смотри логи:
+sudo journalctl -u bjfy -n 50
 ```
 
 ### Шаг 4: Настройка Nginx
@@ -376,6 +384,7 @@ sudo systemctl restart bjfy
 ## ⚠️ Важные замечания
 
 1. **Безопасность админ-панели**:
+
    - Измени URL админки с `/admin/` на что-то уникальное
    - Используй переменную окружения `ADMIN_URL`
    - Пример: `ADMIN_URL=secret-control-xyz-2024/`
@@ -391,19 +400,19 @@ sudo systemctl restart bjfy
    - db.sqlite3
    - /media/ файлы (загружайте отдельно)
 
-2. **Регулярно делайте бэкапы**:
+3. **Регулярно делайте бэкапы**:
 
    - База данных
    - Медиа файлы
    - Код
 
-3. **Мониторинг**:
+4. **Мониторинг**:
 
    - Настроить логирование
    - Использовать Sentry для отслеживания ошибок
    - Настроить алерты
 
-4. **Производительность**:
+5. **Производительность**:
    - Использовать Redis для кэширования
    - CDN для статики
    - Оптимизировать медиа файлы

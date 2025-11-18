@@ -119,11 +119,25 @@ python manage.py createsuperuser
 
 ```bash
 sudo cp /var/www/BJfy/bjfy.service /etc/systemd/system/
+# Перезагрузи systemd
 sudo systemctl daemon-reload
+# Запусти сервис
 sudo systemctl start bjfy
+# Включи автозапуск
 sudo systemctl enable bjfy
+# Проверь статус
 sudo systemctl status bjfy
 ```
+
+⚠️ **Если ошибка**: проверь логи командой `sudo journalctl -u bjfy -n 50`
+
+**Типичные проблемы:**
+- `RuntimeError: reentrant call` - проблема логирования (исправлена в последней версии)
+- `ModuleNotFoundError` - не установлены зависимости: `pip install -r requirements.txt`
+- `Permission denied` - неправильные права: `sudo chown -R www-data:www-data /var/www/BJfy`
+- База данных недоступна - проверь `.env` и PostgreSQL
+
+Подробнее: `TROUBLESHOOTING.md`
 
 ### 8. Настройка Nginx
 
@@ -195,6 +209,85 @@ sudo systemctl restart bjfy
 sudo systemctl restart nginx
 ```
 
+## 🐛 Решение типичных проблем
+
+### Gunicorn не запускается (status=1/FAILURE)
+
+**Причины:**
+1. Неправильный путь к виртуальному окружению
+2. Ошибка в Python коде (импорт модулей)
+3. Отсутствие зависимостей
+
+**Решение:**
+```bash
+# Проверь логи
+sudo journalctl -u bjfy -n 50
+
+# Проверь запуск вручную
+cd /var/www/BJfy/config
+source /var/www/BJfy/env/bin/activate
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
+
+# Если ошибка импорта - установи зависимости
+pip install -r /var/www/BJfy/requirements.txt
+```
+
+### Permission denied (права доступа)
+
+**Решение:**
+```bash
+# Дай права пользователю www-data
+sudo chown -R www-data:www-data /var/www/BJfy
+sudo chmod -R 755 /var/www/BJfy
+
+# Для media файлов
+sudo chown -R www-data:www-data /var/www/BJfy/config/media
+sudo chmod -R 775 /var/www/BJfy/config/media
+```
+
+### База данных не подключается
+
+**Проверь:**
+```bash
+# PostgreSQL запущен?
+sudo systemctl status postgresql
+
+# Права доступа в БД
+sudo -u postgres psql -c "SELECT * FROM pg_database WHERE datname='bjfy_db';"
+
+# Проверь .env файл
+cat /var/www/BJfy/config/.env | grep DB_
+```
+
+### Static файлы не загружаются (404)
+
+**Решение:**
+```bash
+# Собери статику заново
+cd /var/www/BJfy/config
+source /var/www/BJfy/env/bin/activate
+python manage.py collectstatic --noinput
+
+# Проверь права
+sudo chown -R www-data:www-data /var/www/BJfy/config/staticfiles
+```
+
+### Nginx 502 Bad Gateway
+
+**Причина:** Gunicorn не запущен или не слушает порт 8000
+
+**Решение:**
+```bash
+# Проверь статус Gunicorn
+sudo systemctl status bjfy
+
+# Проверь что порт 8000 слушается
+sudo netstat -tlnp | grep 8000
+
+# Перезапусти Gunicorn
+sudo systemctl restart bjfy
+```
+
 ## 🎯 Рекомендации
 
 ### Простой вариант (без сервера)
@@ -215,12 +308,14 @@ sudo systemctl restart nginx
 ## ⚠️ ВАЖНО
 
 1. **Безопасность админ-панели:**
+
    - Обязательно измени `ADMIN_URL` в `.env` на уникальный
    - Не используй `/admin/`, `/panel/`, `/control/` и другие очевидные пути
    - Используй сильные пароли для суперпользователя
    - Доступ будет: `https://yourdomain.com/твой-секретный-путь/`
 
 2. **Никогда не коммить:**
+
    - `.env` файлы
    - `db.sqlite3`
    - Пароли и ключи

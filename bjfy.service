@@ -9,8 +9,15 @@ Group=www-data
 RuntimeDirectory=gunicorn
 WorkingDirectory=/var/www/BJfy/config
 Environment="PATH=/var/www/BJfy/env/bin"
+Environment="PYTHONUNBUFFERED=1"
 ExecStart=/var/www/BJfy/env/bin/gunicorn \
-          --config /var/www/BJfy/gunicorn_config.py \
+          --workers 3 \
+          --worker-class sync \
+          --bind 0.0.0.0:8000 \
+          --timeout 30 \
+          --access-logfile - \
+          --error-logfile - \
+          --log-level info \
           config.wsgi:application
 ExecReload=/bin/kill -s HUP $MAINPID
 KillMode=mixed
