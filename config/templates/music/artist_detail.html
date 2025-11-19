@@ -13,22 +13,14 @@
         {% if artist.bio %}
         <p style="color: #b3b3b3; max-width: 600px;">{{ artist.bio }}</p>
         {% endif %}
-        <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
-            <button class="btn btn-primary" onclick="playFirstInList('#artist-{{ artist.pk }}')"><i class="mdi mdi-play" style="margin-right:6px"></i>Слушать популярное</button>
-        </div>
     </div>
 </div>
 
 <section class="section">
     <h2 class="section-header">Популярные треки</h2>
-    <ul class="song-list" id="artist-{{ artist.pk }}">
+    <ul class="song-list">
         {% for song in songs %}
-        <li class="song-item" data-song-id="{{ song.pk }}"
-            data-audio="{{ song.get_stream_url }}"
-            data-title="{{ song.title }}"
-            data-artist="{{ song.artist.name }}"
-            data-cover="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}"
-            onclick="playFromItem(this)">
+        <li class="song-item" onclick="playSong('{{ song.audio_file.url }}', '{{ song.title }}', '{{ song.artist.name }}',  '{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}')">
             <span class="song-number">{{ forloop.counter }}</span>
             <img src="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}" 
                  alt="{{ song.title }}" 
@@ -38,17 +30,7 @@
                 <div class="song-artist">{{ song.plays }} прослушиваний</div>
             </div>
             {% if user.is_authenticated %}
-                <div class="card-controls">
-                    {% if song.pk in favorite_ids %}
-                    <button class="icon-btn favorited" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Уже в лайках"><i class="mdi mdi-heart"></i></button>
-                    {% else %}
-                    <button class="icon-btn" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Понравилось"><i class="mdi mdi-heart-outline"></i></button>
-                    {% endif %}
-                    <button class="icon-btn menu-btn" onclick="event.stopPropagation(); openMenu(this)" aria-label="Меню">⋮</button>
-                    <div class="menu-dropdown">
-                        <a href="{% url 'add_to_playlist' song.pk %}">Добавить в плейлист</a>
-                    </div>
-                </div>
+            <button class="icon-btn" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')">❤️</button>
             {% endif %}
         </li>
         {% endfor %}
@@ -70,13 +52,4 @@
     </div>
 </section>
 {% endif %}
-
-<script>
-function playFirstInList(selector) {
-    const list = document.querySelector(selector);
-    if (!list) return;
-    const first = list.querySelector('li.song-item');
-    if (first) { playFromItem(first); }
-}
-</script>
 {% endblock %}

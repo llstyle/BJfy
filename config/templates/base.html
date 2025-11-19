@@ -453,7 +453,7 @@
                 align-items: center;
                 justify-content: space-around;
                 background: #000;
-                z-index: 99;
+                z-index: 101; /* Выше плеера! */
                 border-top: 1px solid #282828;
             }
 
@@ -479,7 +479,7 @@
 
             .main-content { 
                 padding: 12px; 
-                padding-bottom: 160px;
+                padding-bottom: 180px; /* 60px навигация + 90px плеер + 30px запас */
                 max-width: 100vw; 
                 overflow-x: hidden; 
             }
@@ -504,6 +504,8 @@
             .player { 
                 padding: 6px 8px;
                 gap: 8px;
+                bottom: 60px; /* Над навигацией */
+                height: 90px;
             }
             .player-info img {
                 width: 40px !important;
@@ -820,20 +822,25 @@
         .fullscreen-progress {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 12px;
+            padding: 8px 0;
         }
 
         .fullscreen-progress .progress-bar {
             height: 6px;
-            background: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.5);
             border-radius: 3px;
             cursor: pointer;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
         }
 
         .fullscreen-progress .progress-fill {
             height: 100%;
-            background: #1db954;
+            background: linear-gradient(90deg, #1db954 0%, #1ed760 100%);
             border-radius: 3px;
+            position: relative;
+            box-shadow: 0 0 10px rgba(29, 185, 84, 0.5);
         }
 
         .fullscreen-progress .progress-handle {
@@ -844,12 +851,18 @@
             position: absolute;
             top: 50%;
             transform: translate(-50%, -50%);
-            opacity: 0;
-            transition: opacity 0.2s;
+            opacity: 1;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
         }
 
         .fullscreen-progress .progress-bar:hover .progress-handle {
             opacity: 1;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+        
+        .fullscreen-progress .progress-bar:active .progress-handle {
+            transform: translate(-50%, -50%) scale(1.3);
         }
 
         .progress-times {
@@ -944,6 +957,7 @@
                 cursor: pointer;
                 height: 64px;
                 padding: 8px 12px;
+                bottom: 60px; /* Над навигацией */
                 grid-template-columns: auto 1fr auto !important;
                 gap: 12px;
             }
@@ -986,6 +1000,21 @@
             .play-btn {
                 width: 48px !important;
                 height: 48px !important;
+            }
+            
+            /* Делаем прогресс-бар в fullscreen больше на touch устройствах */
+            .fullscreen-progress .progress-bar {
+                height: 8px;
+                border-radius: 4px;
+            }
+            
+            .fullscreen-progress .progress-fill {
+                border-radius: 4px;
+            }
+            
+            .fullscreen-progress .progress-handle {
+                width: 16px;
+                height: 16px;
             }
         }
     </style>
@@ -1248,22 +1277,38 @@
         // Setup fullscreen progress bar
         let fullscreenProgressDragging = false;
         
+        // Click to seek (quick jump)
+        fullscreenProgressBar.addEventListener('click', (e) => {
+            if (!fullscreenProgressDragging) { // Only if not dragging
+                seekFullscreenProgress(e);
+            }
+        });
+        
+        // Drag to seek (smooth control)
         fullscreenProgressBar.addEventListener('mousedown', (e) => {
             fullscreenProgressDragging = true;
             seekFullscreenProgress(e);
+            e.preventDefault(); // Prevent text selection
         });
         
         fullscreenProgressBar.addEventListener('touchstart', (e) => {
             fullscreenProgressDragging = true;
             seekFullscreenProgress(e.touches[0]);
+            e.preventDefault();
         });
         
         document.addEventListener('mousemove', (e) => {
-            if (fullscreenProgressDragging) seekFullscreenProgress(e);
+            if (fullscreenProgressDragging) {
+                seekFullscreenProgress(e);
+                e.preventDefault();
+            }
         });
         
         document.addEventListener('touchmove', (e) => {
-            if (fullscreenProgressDragging) seekFullscreenProgress(e.touches[0]);
+            if (fullscreenProgressDragging) {
+                seekFullscreenProgress(e.touches[0]);
+                e.preventDefault();
+            }
         });
         
         document.addEventListener('mouseup', () => {
@@ -1279,8 +1324,12 @@
             const pos = (e.clientX - rect.left) / rect.width;
             const clampedPos = Math.max(0, Math.min(1, pos));
             const newTime = clampedPos * audioPlayer.duration;
-            if (!isNaN(newTime)) {
+            if (!isNaN(newTime) && isFinite(newTime)) {
                 audioPlayer.currentTime = newTime;
+                // Update progress bar immediately
+                const progress = clampedPos * 100;
+                fullscreenProgressFill.style.width = progress + '%';
+                fullscreenCurrentTime.textContent = fmt(newTime);
             }
         }
 
@@ -1640,6 +1689,39 @@
             }
         }
         
+        // Синхронизация иконок когда MediaSession или другие источники управляют плеером
+        audioPlayer.addEventListener('play', () => {
+            userPausedManually = false; // Сброс флага при play
+            const icon = playPauseIcon();
+            if (icon) { 
+                icon.classList.remove('mdi-play'); 
+                icon.classList.add('mdi-pause'); 
+            }
+            if (fullscreenPlayBtn) {
+                const fsIcon = fullscreenPlayBtn.querySelector('i');
+                if (fsIcon) { 
+                    fsIcon.classList.remove('mdi-play'); 
+                    fsIcon.classList.add('mdi-pause'); 
+                }
+            }
+        });
+        
+        audioPlayer.addEventListener('pause', () => {
+            userPausedManually = true; // Пользователь поставил на паузу
+            const icon = playPauseIcon();
+            if (icon) { 
+                icon.classList.remove('mdi-pause'); 
+                icon.classList.add('mdi-play'); 
+            }
+            if (fullscreenPlayBtn) {
+                const fsIcon = fullscreenPlayBtn.querySelector('i');
+                if (fsIcon) { 
+                    fsIcon.classList.remove('mdi-pause'); 
+                    fsIcon.classList.add('mdi-play'); 
+                }
+            }
+        });
+        
         prevBtn.addEventListener('click', (e) => { e.stopPropagation(); prevTrack(); });
         nextBtn.addEventListener('click', (e) => { e.stopPropagation(); nextTrack(); });
         
@@ -1731,6 +1813,7 @@
         });
 
         audioPlayer.addEventListener('ended', () => {
+            userPausedManually = false; // Сброс флага при автопереключении трека
             nextTrack();
         });
 
@@ -1933,14 +2016,16 @@
 
         // Prevent music from stopping when switching tabs or navigating
         let wasPlayingBeforeHidden = false;
+        let userPausedManually = false; // Флаг для отслеживания паузы пользователем
         
         document.addEventListener('visibilitychange', function() {
             if (document.hidden) {
                 // Tab is hidden - remember if music was playing
                 wasPlayingBeforeHidden = !audioPlayer.paused;
+                userPausedManually = false; // Сброс флага при скрытии вкладки
             } else {
-                // Tab is visible again - resume if was playing
-                if (wasPlayingBeforeHidden && audioPlayer.paused) {
+                // Tab is visible again - resume if was playing AND user didn't pause
+                if (wasPlayingBeforeHidden && audioPlayer.paused && !userPausedManually) {
                     audioPlayer.play().catch(err => {
                         console.log('Auto-play prevented:', err);
                     });
@@ -1952,20 +2037,6 @@
         window.addEventListener('beforeunload', function(e) {
             // Don't pause - let browser handle it
             // Some browsers will keep playing, others won't
-        });
-        
-        // Try to keep audio element alive
-        audioPlayer.addEventListener('pause', function(e) {
-            // If paused unexpectedly (not by user), try to resume
-            if (!document.hidden && wasPlayingBeforeHidden) {
-                setTimeout(() => {
-                    if (audioPlayer.paused && wasPlayingBeforeHidden) {
-                        audioPlayer.play().catch(err => {
-                            console.log('Resume failed:', err);
-                        });
-                    }
-                }, 100);
-            }
         });
     </script>
 </body>

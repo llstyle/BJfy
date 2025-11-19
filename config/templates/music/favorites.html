@@ -8,12 +8,7 @@
 <section class="section">
     <ul class="song-list">
         {% for song in songs %}
-    <li class="song-item" data-song-id="{{ song.pk }}"
-        data-audio="{{ song.get_stream_url }}"
-        data-title="{{ song.title }}"
-        data-artist="{{ song.artist.name }}"
-        data-cover="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}"
-        onclick="playFromItem(this)">
+        <li class="song-item" onclick="playSong('{{ song.audio_file.url }}', '{{ song.title }}', '{{ song.artist.name }}',  '{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}')">
             <span class="song-number">{{ forloop.counter }}</span>
             <img src="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}" 
                  alt="{{ song.title }}" 
@@ -22,23 +17,28 @@
                 <div class="song-title">{{ song.title }}</div>
                 <div class="song-artist">{{ song.artist.name }}</div>
             </div>
-            {% if user.is_authenticated %}
-            <div class="card-controls">
-                <button class="icon-btn favorited" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Убрать из любимых"><i class="mdi mdi-heart"></i></button>
-                    <div style="position:relative;">
-                        <button class="icon-btn menu-btn" onclick="event.stopPropagation(); openMenu(this)" aria-label="Меню">⋮</button>
-                        <div class="menu-dropdown">
-                            <a href="{% url 'add_to_playlist' song.pk %}">Добавить в плейлист</a>
-                        </div>
-                    </div>
-            </div>
-            {% endif %}
+            <button class="icon-btn mdi mdi-heart-outline" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" style="color: #1db954;">❤️</button>
         </li>
         {% empty %}
-    <p style="color: #b3b3b3;">У вас пока нет любимых треков. Добавьте их, нажав на <i class="mdi mdi-heart-outline"></i></p>
+        <p style="color: #b3b3b3;">У вас пока нет любимых треков. Добавьте их, нажав на ❤️</p>
         {% endfor %}
     </ul>
 </section>
 
-{# toggleFavorite moved to base.html (global) to ensure CSRF token is used and function is available site-wide #}
+<script>
+function toggleFavorite(songId) {
+    fetch(`/song/${songId}/favorite/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'removed') {
+            location.reload();
+        }
+    });
+}
+</script>
 {% endblock %}
