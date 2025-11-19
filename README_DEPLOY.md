@@ -27,10 +27,16 @@ nano .env
 Заполни все значения:
 
 - `SECRET_KEY` - из предыдущего шага
-- `ALLOWED_HOSTS` - твой домен
+- `ALLOWED_HOSTS` - **ВАЖНО:** включи все варианты доступа
+  - `127.0.0.1` - для локальных запросов
+  - `localhost` - для локальных запросов  
+  - IP-адрес сервера - для доступа по IP
+  - Домены - `yourdomain.com,www.yourdomain.com`
+  - **Формат:** без пробелов, через запятую!
+  - **Пример:** `127.0.0.1,localhost,164.92.181.99,example.com,www.example.com`
 - `ADMIN_URL` - **ОБЯЗАТЕЛЬНО** измени на свой уникальный путь (например: `secret-panel-xyz123/`)
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD` - данные PostgreSQL
-- `CSRF_TRUSTED_ORIGINS` - https://твойдомен.com
+- `CSRF_TRUSTED_ORIGINS` - https://твойдомен.com,https://www.твойдомен.com
 
 ⚠️ **Не используй стандартный `/admin/` - это первая цель для атак!**
 
@@ -113,6 +119,11 @@ cd config
 python manage.py migrate
 python manage.py collectstatic --noinput
 python manage.py createsuperuser
+
+# Создай директорию для логов и дай права
+mkdir -p logs
+sudo chown -R www-data:www-data /var/www/BJfy/config/logs
+sudo chmod -R 775 /var/www/BJfy/config/logs
 ```
 
 ### 7. Настройка Gunicorn service
@@ -131,13 +142,34 @@ sudo systemctl status bjfy
 
 ⚠️ **Если ошибка**: проверь логи командой `sudo journalctl -u bjfy -n 50`
 
+**Быстрая диагностика:**
+```bash
+# Запусти скрипт диагностики
+chmod +x diagnose.sh
+sudo ./diagnose.sh
+```
+
 **Типичные проблемы:**
+
 - `RuntimeError: reentrant call` - проблема логирования (исправлена в последней версии)
+- `PermissionError: Permission denied: logs/django.log` - нет прав на логи:
+  ```bash
+  sudo mkdir -p /var/www/BJfy/config/logs
+  sudo chown -R www-data:www-data /var/www/BJfy/config/logs
+  sudo chmod -R 775 /var/www/BJfy/config/logs
+  sudo systemctl restart bjfy
+  ```
+- `Bad Request (400)` - неправильный `ALLOWED_HOSTS`:
+  ```bash
+  nano /var/www/BJfy/config/.env
+  # ALLOWED_HOSTS=127.0.0.1,localhost,IP,домен.com (БЕЗ ПРОБЕЛОВ!)
+  sudo systemctl restart bjfy
+  ```
 - `ModuleNotFoundError` - не установлены зависимости: `pip install -r requirements.txt`
-- `Permission denied` - неправильные права: `sudo chown -R www-data:www-data /var/www/BJfy`
+- `Permission denied` (общая) - неправильные права: `sudo chown -R www-data:www-data /var/www/BJfy`
 - База данных недоступна - проверь `.env` и PostgreSQL
 
-Подробнее: `TROUBLESHOOTING.md`
+Подробнее: `TROUBLESHOOTING.md` или `BAD_REQUEST_FIX.md`
 
 ### 8. Настройка Nginx
 
@@ -214,11 +246,13 @@ sudo systemctl restart nginx
 ### Gunicorn не запускается (status=1/FAILURE)
 
 **Причины:**
+
 1. Неправильный путь к виртуальному окружению
 2. Ошибка в Python коде (импорт модулей)
 3. Отсутствие зависимостей
 
 **Решение:**
+
 ```bash
 # Проверь логи
 sudo journalctl -u bjfy -n 50
@@ -235,6 +269,7 @@ pip install -r /var/www/BJfy/requirements.txt
 ### Permission denied (права доступа)
 
 **Решение:**
+
 ```bash
 # Дай права пользователю www-data
 sudo chown -R www-data:www-data /var/www/BJfy
@@ -248,6 +283,7 @@ sudo chmod -R 775 /var/www/BJfy/config/media
 ### База данных не подключается
 
 **Проверь:**
+
 ```bash
 # PostgreSQL запущен?
 sudo systemctl status postgresql
@@ -262,6 +298,7 @@ cat /var/www/BJfy/config/.env | grep DB_
 ### Static файлы не загружаются (404)
 
 **Решение:**
+
 ```bash
 # Собери статику заново
 cd /var/www/BJfy/config
@@ -274,18 +311,55 @@ sudo chown -R www-data:www-data /var/www/BJfy/config/staticfiles
 
 ### Nginx 502 Bad Gateway
 
+**Ошибка в логах Nginx:**
+```
+connect() failed (111: Connection refused) while connecting to upstream
+```
+
 **Причина:** Gunicorn не запущен или не слушает порт 8000
 
 **Решение:**
+
 ```bash
-# Проверь статус Gunicorn
+# 1. Проверь статус Gunicorn
 sudo systemctl status bjfy
 
-# Проверь что порт 8000 слушается
-sudo netstat -tlnp | grep 8000
+# Если показывает "inactive (dead)" или "failed":
 
-# Перезапусти Gunicorn
+# 2. Проверь логи Gunicorn
+sudo journalctl -u bjfy -n 50
+
+# 3. Проверь что виртуальное окружение существует
+ls -la /var/www/BJfy/env/bin/gunicorn
+
+# 4. Попробуй запустить Gunicorn вручную для диагностики
+cd /var/www/BJfy/config
+source /var/www/BJfy/env/bin/activate
+gunicorn config.wsgi:application --bind 0.0.0.0:8000
+# Если появляется ошибка - исправь её
+
+# 5. Если вручную работает, проверь права
+sudo chown -R www-data:www-data /var/www/BJfy
+sudo chmod -R 755 /var/www/BJfy
+sudo chmod -R 775 /var/www/BJfy/config/logs
+
+# 6. Запусти сервис
+sudo systemctl start bjfy
+
+# 7. Проверь что порт 8000 слушается
+sudo ss -tlnp | grep 8000
+# Должно показать: 127.0.0.1:8000
+
+# 8. Если всё равно не работает - перезагрузи service
+sudo systemctl daemon-reload
 sudo systemctl restart bjfy
+sudo systemctl status bjfy
+```
+
+**Быстрая проверка:**
+```bash
+# Всё в одной команде
+sudo systemctl status bjfy && sudo ss -tlnp | grep 8000
 ```
 
 ## 🎯 Рекомендации

@@ -268,10 +268,22 @@ python manage.py migrate
 # 9. Создать директорию для логов
 mkdir -p logs
 
-# 10. Собрать статику
+# 10. Настроить права доступа
+cd /var/www/BJfy
+sudo chown -R www-data:www-data /var/www/BJfy
+sudo chmod -R 755 /var/www/BJfy
+sudo chmod -R 775 /var/www/BJfy/config/logs
+sudo chmod -R 775 /var/www/BJfy/config/media
+
+# Или используй скрипт:
+# chmod +x fix_permissions.sh
+# sudo ./fix_permissions.sh
+
+# 11. Собрать статику
+cd config
 python manage.py collectstatic --noinput
 
-# 11. Создать суперпользователя
+# 12. Создать суперпользователя
 python manage.py createsuperuser
 ```
 

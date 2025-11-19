@@ -1109,7 +1109,7 @@
                 <button class="fullscreen-control-btn" onclick="event.stopPropagation(); prevTrack();" aria-label="Предыдущий">
                     <i class="mdi mdi-skip-previous"></i>
                 </button>
-                <button class="fullscreen-control-btn fullscreen-play-btn" id="fullscreen-play-btn" onclick="event.stopPropagation(); togglePlayPause();" aria-label="Пуск/Пауза">
+                <button class="fullscreen-control-btn fullscreen-play-btn" id="fullscreen-play-btn" aria-label="Пуск/Пауза">
                     <i class="mdi mdi-play"></i>
                 </button>
                 <button class="fullscreen-control-btn" onclick="event.stopPropagation(); nextTrack();" aria-label="Следующий">
@@ -1118,15 +1118,19 @@
             </div>
             
             <div class="fullscreen-actions">
-                <button class="fullscreen-action-btn" id="fullscreen-like-btn" onclick="event.stopPropagation(); if(window.currentSongId) toggleFavorite(window.currentSongId);" aria-label="Понравилось">
+                {% if user.is_authenticated %}
+                <button class="fullscreen-action-btn" id="fullscreen-like-btn" aria-label="Понравилось">
                     <i class="mdi mdi-heart-outline"></i>
                 </button>
-                <button class="fullscreen-action-btn" onclick="event.stopPropagation(); cycleMode()" id="fullscreen-mode-btn" title="Режим">
+                {% endif %}
+                <button class="fullscreen-action-btn" id="fullscreen-mode-btn" title="Режим">
                     <i class="mdi mdi-arrow-right"></i>
                 </button>
-                <a href="#" id="fullscreen-add-to-playlist" class="fullscreen-action-btn" onclick="event.stopPropagation();" aria-label="Добавить в плейлист" title="Добавить в плейлист">
+                {% if user.is_authenticated %}
+                <a href="#" id="fullscreen-add-to-playlist" class="fullscreen-action-btn" aria-label="Добавить в плейлист" title="Добавить в плейлист">
                     <i class="mdi mdi-playlist-plus"></i>
                 </a>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -1590,21 +1594,49 @@
             togglePlayPause();
         });
         
+        // Fullscreen play button handler
+        fullscreenPlayBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            togglePlayPause();
+        });
+        
+        // Fullscreen like button handler
+        if (fullscreenLikeBtn) {
+            fullscreenLikeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (window.currentSongId) {
+                    toggleFavorite(window.currentSongId);
+                }
+            });
+        }
+        
+        // Fullscreen mode button handler
+        if (fullscreenModeBtn) {
+            fullscreenModeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                cycleMode();
+            });
+        }
+        
         function togglePlayPause() {
             if (audioPlayer.paused) {
                 audioPlayer.play();
                 const icon = playPauseIcon();
                 if (icon) { icon.classList.remove('mdi-play'); icon.classList.add('mdi-pause'); }
                 // Update fullscreen button
-                const fsIcon = fullscreenPlayBtn.querySelector('i');
-                if (fsIcon) { fsIcon.classList.remove('mdi-play'); fsIcon.classList.add('mdi-pause'); }
+                if (fullscreenPlayBtn) {
+                    const fsIcon = fullscreenPlayBtn.querySelector('i');
+                    if (fsIcon) { fsIcon.classList.remove('mdi-play'); fsIcon.classList.add('mdi-pause'); }
+                }
             } else {
                 audioPlayer.pause();
                 const icon = playPauseIcon();
                 if (icon) { icon.classList.remove('mdi-pause'); icon.classList.add('mdi-play'); }
                 // Update fullscreen button
-                const fsIcon = fullscreenPlayBtn.querySelector('i');
-                if (fsIcon) { fsIcon.classList.remove('mdi-pause'); fsIcon.classList.add('mdi-play'); }
+                if (fullscreenPlayBtn) {
+                    const fsIcon = fullscreenPlayBtn.querySelector('i');
+                    if (fsIcon) { fsIcon.classList.remove('mdi-pause'); fsIcon.classList.add('mdi-play'); }
+                }
             }
         }
         
