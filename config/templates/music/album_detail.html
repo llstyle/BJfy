@@ -17,24 +17,52 @@
             <span>•</span>
             <span>{{ songs.count }} треков</span>
         </div>
+        <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+            <button class="btn btn-primary" onclick="playFirstInList('#album-{{ album.pk }}')"><i class="mdi mdi-play" style="margin-right:6px"></i>Слушать</button>
+        </div>
     </div>
 </div>
 
 <section class="section">
-    <ul class="song-list">
+    <ul class="song-list" id="album-{{ album.pk }}">
         {% for song in songs %}
-        <li class="song-item" onclick="playSong('{{ song.audio_file.url }}', '{{ song.title }}', '{{ song.artist.name }}',  '{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}')">
+        <li class="song-item" data-song-id="{{ song.pk }}"
+            data-audio="{{ song.get_stream_url }}"
+            data-title="{{ song.title }}"
+            data-artist="{{ song.artist.name }}"
+            data-cover="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}"
+            onclick="playFromItem(this)">
             <span class="song-number">{{ forloop.counter }}</span>
             <div class="song-info">
                 <div class="song-title">{{ song.title }}</div>
-                <div class="song-artist">{{ song.artist.name }}</div>
+                <div class="song-artist">{{ song.artist.name }} • {{ song.get_duration_display }}</div>
             </div>
-            <span style="color: #b3b3b3; font-size: 14px;">{{ song.duration }}</span>
             {% if user.is_authenticated %}
-            <button class="icon-btn" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')">❤️</button>
+            <div style="display: flex; align-items: center; gap: 8px; margin-left: auto;">
+                <div class="card-controls" style="margin-left: 0;">
+                    {% if song.pk in favorite_ids %}
+                    <button class="icon-btn favorited" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Уже в лайках"><i class="mdi mdi-heart"></i></button>
+                    {% else %}
+                    <button class="icon-btn" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Понравилось"><i class="mdi mdi-heart-outline"></i></button>
+                    {% endif %}
+                    <button class="icon-btn menu-btn" onclick="event.stopPropagation(); openMenu(this)" aria-label="Меню">⋮</button>
+                    <div class="menu-dropdown">
+                        <a href="{% url 'add_to_playlist' song.pk %}">Добавить в плейлист</a>
+                    </div>
+                </div>
+            </div>
             {% endif %}
         </li>
         {% endfor %}
     </ul>
 </section>
+
+<script>
+function playFirstInList(selector) {
+    const list = document.querySelector(selector);
+    if (!list) return;
+    const first = list.querySelector('li.song-item');
+    if (first) { playFromItem(first); }
+}
+</script>
 {% endblock %}

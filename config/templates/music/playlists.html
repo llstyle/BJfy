@@ -11,6 +11,7 @@
 <div class="grid">
     {% for playlist in playlists %}
     <a href="{% url 'playlist_detail' playlist.pk %}" class="card" style="text-decoration: none; color: inherit;">
+    <div class="play-circle" onclick="event.preventDefault(); window.location.href=this.closest('a').href;"><i class="mdi mdi-play"></i></div>
         <img src="{% if playlist.cover %}{{ playlist.cover.url }}{% else %}/static/placeholder.png{% endif %}" 
              alt="{{ playlist.name }}" class="card-image">
         <div class="card-title">{{ playlist.name }}</div>

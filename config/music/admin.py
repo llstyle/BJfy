@@ -20,8 +20,8 @@ class SongAdmin(admin.ModelAdmin):
 
 @admin.register(Playlist)
 class PlaylistAdmin(admin.ModelAdmin):
-    list_display = ['name', 'user', 'is_public', 'created_at']
-    list_filter = ['is_public', 'created_at']
+    list_display = ['name', 'user', 'created_at']
+    list_filter = ['created_at']
     search_fields = ['name', 'user__username']
 
 admin.site.register(Favorite)

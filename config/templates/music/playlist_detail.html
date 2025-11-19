@@ -4,19 +4,35 @@
 
 {% block content %}
 <div style="margin-bottom: 32px;">
-    <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">Плейлист</div>
-    <h1 style="font-size: 48px; font-weight: bold; margin-bottom: 16px;">{{ playlist.name }}</h1>
-    <div style="color: #b3b3b3;">
-        <span>{{ playlist.user.username }}</span>
-        <span> • </span>
-        <span>{{ playlist.songs.count }} треков</span>
+    <div style="display:flex; gap:20px; align-items:center;">
+    <img src="{% if playlist.cover %}{{ playlist.cover.url }}{% else %}/static/placeholder.png{% endif %}" alt="{{ playlist.name }}" style="width:140px; height:140px; object-fit:cover; border-radius:8px;">
+        <div>
+            <div style="font-size: 12px; text-transform: uppercase; font-weight: 600; margin-bottom: 8px;">Плейлист</div>
+            <h1 style="font-size: 48px; font-weight: bold; margin-bottom: 8px;">{{ playlist.name }}</h1>
+            <div style="color: #b3b3b3;">
+                <span>{{ playlist.user.username }}</span>
+                <span> • </span>
+                <span>{{ playlist.songs.count }} треков</span>
+            </div>
+            <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-primary" onclick="playFirstInList('#playlist-{{ playlist.pk }}')"><i class="mdi mdi-play" style="margin-right:6px"></i>Слушать</button>
+                {% if playlist.user == user %}
+                <a href="{% url 'edit_playlist' playlist.pk %}" class="btn btn-secondary">Изменить</a>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
 
 <section class="section">
-    <ul class="song-list">
+    <ul class="song-list" id="playlist-{{ playlist.pk }}">
         {% for song in playlist.songs.all %}
-        <li class="song-item" onclick="playSong('{{ song.audio_file.url }}', '{{ song.title }}', '{{ song.artist.name }}',  '{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}')">
+    <li class="song-item" data-song-id="{{ song.pk }}"
+        data-audio="{{ song.get_stream_url }}"
+        data-title="{{ song.title }}"
+        data-artist="{{ song.artist.name }}"
+        data-cover="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}"
+        onclick="playFromItem(this)">
             <span class="song-number">{{ forloop.counter }}</span>
             <img src="{% if song.album.cover %}{{ song.album.cover.url }}{% else %}/static/placeholder.png{% endif %}" 
                  alt="{{ song.title }}" 
@@ -25,11 +41,57 @@
                 <div class="song-title">{{ song.title }}</div>
                 <div class="song-artist">{{ song.artist.name }}</div>
             </div>
-            <button class="icon-btn" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')">❤️</button>
+                {% if user.is_authenticated %}
+                <div class="card-controls">
+                    {% if song.pk in favorite_ids %}
+                    <button class="icon-btn favorited" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Уже в лайках"><i class="mdi mdi-heart"></i></button>
+                    {% else %}
+                    <button class="icon-btn" onclick="event.stopPropagation(); toggleFavorite('{{ song.pk }}')" aria-label="Понравилось"><i class="mdi mdi-heart-outline"></i></button>
+                    {% endif %}
+                    <button class="icon-btn menu-btn" onclick="event.stopPropagation(); openMenu(this)" aria-label="Меню">⋮</button>
+                    <div class="menu-dropdown">
+                        <a href="{% url 'add_to_playlist' song.pk %}">Добавить в плейлист</a>
+                        {% if playlist.user == user %}
+                        <a href="#" onclick="event.preventDefault(); removeFromPlaylist('{{ playlist.pk }}','{{ song.pk }}', this); closeAllMenus();">Удалить из плейлиста</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
         </li>
         {% empty %}
         <p style="color: #b3b3b3;">В этом плейлисте пока нет треков.</p>
         {% endfor %}
     </ul>
 </section>
+<script>
+function playFirstInList(selector) {
+    const list = document.querySelector(selector);
+    if (!list) return;
+    const first = list.querySelector('li.song-item');
+    if (first) { playFromItem(first); }
+}
+function removeFromPlaylist(playlistId, songId, btn) {
+    if (!confirm('Удалить этот трек из плейлиста?')) return;
+    fetch(`/playlist/${playlistId}/remove-song/${songId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({})
+    })
+    .then(res => res.json())
+    .then(json => {
+        if (json.status === 'removed') {
+            // remove the li element from DOM
+            const li = btn.closest('li.song-item');
+            if (li) li.remove();
+        }
+    })
+    .catch(err => console.error(err));
+}
+
+// upload removed here: cover is managed via the Edit page to avoid duplicate UI
+</script>
 {% endblock %}
