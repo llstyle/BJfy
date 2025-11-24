@@ -1,0 +1,28 @@
+# Python compiled files
+*.pyc
+__pycache__/
+
+# Virtual environment
+venv/
+env/
+.env/
+
+# Database
+*.sqlite3
+
+# Media and static files (if not tracked by Git)
+media/
+static_root/
+staticfiles/
+
+# IDEs and OS
+.DS_Store
+.idea/
+*.suo
+*.user
+
+# Logs
+*.log
+
+# Environment files
+.env
