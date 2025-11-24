@@ -1,9 +1,17 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Music Streaming{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'favicon-16x16.png' %}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'apple-touch-icon.png' %}">
+    <link rel="manifest" href="{% static 'site.webmanifest' %}">
+    
     <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
     <style>
         * {
@@ -1939,8 +1947,8 @@
                 // Tab is hidden - remember if music was playing
                 wasPlayingBeforeHidden = !audioPlayer.paused;
             } else {
-                // Tab is visible again - resume if was playing
-                if (wasPlayingBeforeHidden && audioPlayer.paused) {
+                // Tab is visible again - resume if was playing AND user didn't pause manually
+                if (wasPlayingBeforeHidden && audioPlayer.paused && !userPausedManually) {
                     audioPlayer.play().catch(err => {
                         console.log('Auto-play prevented:', err);
                     });
@@ -1952,20 +1960,6 @@
         window.addEventListener('beforeunload', function(e) {
             // Don't pause - let browser handle it
             // Some browsers will keep playing, others won't
-        });
-        
-        // Try to keep audio element alive
-        audioPlayer.addEventListener('pause', function(e) {
-            // If paused unexpectedly (not by user), try to resume
-            if (!document.hidden && wasPlayingBeforeHidden) {
-                setTimeout(() => {
-                    if (audioPlayer.paused && wasPlayingBeforeHidden) {
-                        audioPlayer.play().catch(err => {
-                            console.log('Resume failed:', err);
-                        });
-                    }
-                }, 100);
-            }
         });
     </script>
 </body>
