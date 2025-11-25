@@ -31,7 +31,7 @@ class Album(models.Model):
 class Song(models.Model):
     title = models.CharField(max_length=200)
     artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='songs')
-    album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='songs', null=True, blank=True)
+    album = models.ForeignKey(Album, on_delete=models.CASCADE, related_name='songs')  # Обязательное поле
     audio_file = models.FileField(upload_to='songs/')
     cover = models.ImageField(upload_to='songs/covers/', blank=True, null=True)
     duration = models.DurationField(blank=True, null=True)
@@ -45,7 +45,7 @@ class Song(models.Model):
         """Возвращает обложку трека или альбома"""
         if self.cover:
             return self.cover.url
-        elif self.album and self.album.cover:
+        elif self.album.cover:  # album теперь всегда существует
             return self.album.cover.url
         return '/static/placeholder.png'
     

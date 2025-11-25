@@ -13,7 +13,8 @@ import mimetypes
 import re
 
 def home(request):
-    recent_songs = Song.objects.order_by('-created_at')[:3]  # 3 самых новых
+    # Новинки по дате релиза альбома (самые свежие релизы)
+    recent_songs = Song.objects.select_related('album', 'artist').order_by('-album__release_date')[:3]
     popular_songs = Song.objects.order_by('-plays')[:3]  # 3 самых популярных
     artists = Artist.objects.annotate(song_count=Count('songs')).order_by('-song_count')[:8]  # Популярные артисты
     albums = Album.objects.order_by('-release_date')[:8]  # Новые альбомы
@@ -176,7 +177,8 @@ def search(request):
 
 def artist_detail(request, pk):
     artist = get_object_or_404(Artist, pk=pk)
-    songs = artist.songs.all()
+    # Показываем только 10 самых популярных треков артиста
+    songs = artist.songs.order_by('-plays')[:10]
     albums = artist.albums.all()
     
     if request.user.is_authenticated:
