@@ -1070,11 +1070,13 @@
         <!-- Right: volume & actions -->
         <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; min-width: 180px;">
             <div class="card-controls" style="position:relative;">
+                {% if user.is_authenticated %}
                 <button id="player-like-btn" class="icon-btn" onclick="event.stopPropagation(); toggleFavorite(currentSongId)" aria-label="Понравилось"><i class="mdi mdi-heart-outline"></i></button>
                 <button class="icon-btn menu-btn" onclick="event.stopPropagation(); openMenu(this)" aria-label="Меню">⋮</button>
                 <div class="menu-dropdown" style="right:0;">
                     <a href="#" id="player-add-to-playlist">Добавить в плейлист</a>
                 </div>
+                {% endif %}
             </div>
         </div>
         
